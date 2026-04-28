@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UK Chart Archive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .active-nav { background: #dc2626; color: white !important; border-radius: 0.375rem; }
+        .chart-card { cursor: pointer; transition: all 0.15s; }
+        .chart-card:hover { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-color: #fca5a5; }
+        .new-badge { background: #fef3c7; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+        .tr-row { border-bottom: 1px solid #e5e7eb; }
+        .tr-row:hover { background: #f9fafb; }
+        table { width: 100%; border-collapse: collapse; }
+        td { padding: 10px 12px; }
+        tr:last-child td { border-bottom: none; }
+        .loading { text-align: center; padding: 3rem; color: #6b7280; }
+        .hidden { display: none !important; }
+        #loader { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; z-index: 100; font-size: 1.2rem; color: #6b7280; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+<div id="loader">Loading charts...</div>
+
+<header class="bg-white shadow-sm border-b sticky top-0 z-20">
+    <div class="max-w-6xl mx-auto px-4 py-4">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+            <span class="text-xl font-bold text-gray-900 cursor-pointer" onclick="showHome()">🎵 UK Chart Archive</span>
+            <nav class="flex gap-1 text-sm">
+                <a href="#" onclick="showHome()" class="px-3 py-1.5 rounded text-gray-700 hover:bg-gray-100" id="nav-home">Home</a>
+                <a href="#" onclick="showBt40Years()" class="px-3 py-1.5 rounded text-gray-700 hover:bg-gray-100" id="nav-bt40">Big Top 40</a>
+                <a href="#" onclick="showOfficialYears()" class="px-3 py-1.5 rounded text-gray-700 hover:bg-gray-100" id="nav-official">Official Chart</a>
+            </nav>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 py-8" id="main-content">
+    <!-- Content injected by JS -->
+</main>
+
+<footer class="border-t bg-white mt-16">
+    <div class="max-w-6xl mx-auto px-4 py-6 text-sm text-gray-500 text-center">
+        UK Chart Archive — Data from bigtop40.com and officialcharts.com
+    </div>
+</footer>
+
+<script>
+// Data will be loaded from JSON files
+let bt40Data = [];
+let officialData = [];
+let dataLoaded = false;
+
+async function loadData() {
+    if (dataLoaded) return;
+    try {
+        const [bt40Resp, officialResp] = await Promise.all([
+            fetch('bigtop40.json'), fetch('official.json')
+        ]);
+        bt40Data = await bt40Resp.json();
+        officialData = await officialResp.json();
+        dataLoaded = true;
+        document.getElementById('loader').style.display = 'none';
+    } catch(e) {
+        document.getElementById('loader').innerHTML = 'Error loading chart data. Please refresh.';
+        console.error(e);
+    }
+}
+
+function setActiveNav(id) {
+    ['nav-home','nav-bt40','nav-official'].forEach(n => {
+        const el = document.getElementById(n);
+        if (el) el.classList.remove('active-nav');
+    });
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active-nav');
+}
+
+function showHome() {
+    setActiveNav('nav-home');
+    const mc = document.getElementById('main-content');
+    const latestBt40 = bt40Data[bt40Data.length - 1];
+    const latestOfficial = officialData[officialData.length - 1];
+    mc.innerHTML = `
+        <div class="text-center py-8">
+            <h2 class="text-3xl font-bold mb-3">UK Chart Archive</h2>
+            <p class="text-gray-600 mb-8">Big Top 40 & Official UK Singles Chart in one place</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto mb-10">
+                <div class="bg-white rounded-lg shadow-sm p-6 border cursor-pointer hover:shadow-md hover:border-red-300 transition-all" onclick="showBt40Years()">
+                    <div class="text-2xl font-bold text-red-600">${bt40Data.length}</div>
+                    <div class="text-sm text-gray-500">Big Top 40 charts</div>
+                    <div class="text-xs text-gray-400 mt-1">2009–present</div>
+                </div>
+                <div class="bg-white rounded-lg shadow-sm p-6 border cursor-pointer hover:shadow-md hover:border-red-300 transition-all" onclick="showOfficialYears()">
+                    <div class="text-2xl font-bold text-red-600">${officialData.length}</div>
+                    <div class="text-sm text-gray-500">Official UK Singles charts</div>
+                    <div class="text-xs text-gray-400 mt-1">1952–present</div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-md mx-auto text-left text-sm">
+                <div class="bg-white rounded p-3 border"><strong>Latest BT40:</strong><br>${latestBt40 ? latestBt40.date : '—'}</div>
+                <div class="bg-white rounded p-3 border"><strong>Latest Official:</strong><br>${latestOfficial ? latestOfficial.date : '—'}</div>
+                <div class="bg-white rounded p-3 border"><strong>BT40 #1:</strong><br>${latestBt40 ? latestBt40.num1 : '—'}</div>
+            </div>
+        </div>
+    `;
+}
+
+function showBt40Years() {
+    setActiveNav('nav-bt40');
+    showYears('Big Top 40', bt40Data, 'bt40');
+}
+
+function showOfficialYears() {
+    setActiveNav('nav-official');
+    showYears('Official UK Singles Chart', officialData, 'official');
+}
+
+function showYears(title, data, type) {
+    const years = [...new Set(data.map(c => c.year))].sort((a,b) => b-a);
+    const mc = document.getElementById('main-content');
+    mc.innerHTML = `
+        <h2 class="text-2xl font-bold mb-2">${title}</h2>
+        <p class="text-gray-500 mb-6">${data.length} charts across ${years.length} years</p>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            ${years.map(y => `
+                <div class="chart-card bg-white border rounded-lg p-4 text-center" onclick="showYear(${y}, '${type}')">
+                    <div class="text-xl font-bold">${y}</div>
+                    <div class="text-xs text-gray-400">${data.filter(c => c.year === y).length} charts</div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function showYear(year, type) {
+    const data = type === 'bt40' ? bt40Data : officialData;
+    const title = type === 'bt40' ? 'Big Top 40' : 'Official UK Singles Chart';
+    const yearData = data.filter(c => c.year === year).sort((a,b) => a.week - b.week);
+    const mc = document.getElementById('main-content');
+    mc.innerHTML = `
+        <a href="#" onclick="${type === 'bt40' ? 'showBt40Years()' : 'showOfficialYears()'}" class="text-gray-500 hover:text-red-600 text-sm">← Back to years</a>
+        <h2 class="text-2xl font-bold mb-2 mt-2">${title} — ${year}</h2>
+        <p class="text-gray-500 mb-6">${yearData.length} charts</p>
+        <div class="space-y-2">
+            ${yearData.map(c => `
+                <div class="chart-card bg-white border rounded-lg p-4 flex justify-between items-center" onclick="showChart(${year}, ${c.week}, '${type}')">
+                    <div>
+                        <span class="font-medium">Week ${c.week} — ${c.date || year + '-W' + String(c.week).padStart(2,'0')}</span>
+                        <span class="text-sm text-gray-500 ml-3">${c.count} tracks</span>
+                        ${c.num1 ? `<span class="text-sm text-red-600 ml-3">#1: ${c.num1}</span>` : ''}
+                    </div>
+                    <span class="text-gray-400">→</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function showChart(year, week, type) {
+    const data = type === 'bt40' ? bt40Data : officialData;
+    const title = type === 'bt40' ? 'Big Top 40' : 'Official UK Singles Chart';
+    const chart = data.find(c => c.year === year && c.week === week);
+    if (!chart) return;
+    
+    const entries = chart.entries || [];
+    
+    const mc = document.getElementById('main-content');
+    const rows = entries.map(e => {
+        const pos = e.position;
+        const trackTitle = e.title || '';
+        const artist = e.artist || '';
+        const isNew = e.is_new;
+        const lastWeek = e.last_week;
+        
+        let moveHtml = '';
+        if (isNew) moveHtml = '<span class="new-badge">NEW</span>';
+        else if (lastWeek === null || lastWeek === undefined) moveHtml = '<span class="text-gray-400 text-xs">—</span>';
+        else if (lastWeek < pos) moveHtml = '<span class="text-red-600 text-xs">↓ ' + lastWeek + '</span>';
+        else if (lastWeek > pos) moveHtml = '<span class="text-green-600 text-xs">↑ ' + lastWeek + '</span>';
+        else moveHtml = '<span class="text-gray-400 text-xs">→ ' + lastWeek + '</span>';
+        
+        const artUrl = e.art_url || '';
+        const artHtml = artUrl ? '<img src="' + artUrl + '" class="w-10 h-10 rounded object-cover bg-gray-100" loading="lazy" onerror="this.style.display=\'none\'">' : '<div class="w-10 h-10 rounded bg-gray-100"></div>';
+        
+        return '<tr class="tr-row">' +
+            '<td class="text-center font-bold" style="width:50px">' + pos + '</td>' +
+            '<td style="width:50px">' + artHtml + '</td>' +
+            '<td><div class="font-medium">' + escapeHtml(trackTitle) + '</div><div class="text-sm text-gray-500">' + escapeHtml(artist) + '</div></td>' +
+            '<td class="text-right" style="width:80px">' + moveHtml + '</td>' +
+            '</tr>';
+    }).join('');
+    
+    mc.innerHTML = `
+        <a href="#" onclick="showYear(${year}, '${type}')" class="text-gray-500 hover:text-red-600 text-sm">← Back to ${year}</a>
+        <h2 class="text-2xl font-bold mb-1 mt-2">${title}</h2>
+        <p class="text-gray-500 mb-6">${chart.date || 'Week ' + week} · ${entries.length} tracks</p>
+        <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <table>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>
+    `;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Load data and show home
+loadData().then(() => showHome());
+</script>
+</body>
+</html>
