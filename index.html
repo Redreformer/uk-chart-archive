@@ -160,11 +160,18 @@ function showYear(year, type) {
     `;
 }
 
+function findChartIndex(data, year, week) {
+    return data.findIndex(c => c.year === year && c.week === week);
+}
+
 function showChart(year, week, type) {
     const data = type === 'bt40' ? bt40Data : officialData;
     const title = type === 'bt40' ? 'Big Top 40' : 'Official UK Singles Chart';
-    const chart = data.find(c => c.year === year && c.week === week);
-    if (!chart) return;
+    const idx = findChartIndex(data, year, week);
+    if (idx === -1) return;
+    const chart = data[idx];
+    const prevChart = idx > 0 ? data[idx - 1] : null;
+    const nextChart = idx < data.length - 1 ? data[idx + 1] : null;
     
     const entries = chart.entries || [];
     
@@ -194,9 +201,16 @@ function showChart(year, week, type) {
             '</tr>';
     }).join('');
     
+    const prevBtn = prevChart ? `<a href="#" onclick="showChart(${prevChart.year}, ${prevChart.week}, '${type}')" class="inline-flex items-center gap-1 px-3 py-1.5 bg-white border rounded-lg hover:bg-gray-50 text-sm text-gray-700">← Week ${prevChart.week}, ${prevChart.year}</a>` : '<span class="px-3 py-1.5 text-sm text-gray-300">← Previous</span>';
+    const nextBtn = nextChart ? `<a href="#" onclick="showChart(${nextChart.year}, ${nextChart.week}, '${type}')" class="inline-flex items-center gap-1 px-3 py-1.5 bg-white border rounded-lg hover:bg-gray-50 text-sm text-gray-700">Week ${nextChart.week}, ${nextChart.year} →</a>` : '<span class="px-3 py-1.5 text-sm text-gray-300">Next →</span>';
+
     mc.innerHTML = `
         <a href="#" onclick="showYear(${year}, '${type}')" class="text-gray-500 hover:text-red-600 text-sm">← Back to ${year}</a>
-        <h2 class="text-2xl font-bold mb-1 mt-2">${title}</h2>
+        <div class="flex items-center justify-between mt-3 mb-4">
+            ${prevBtn}
+            ${nextBtn}
+        </div>
+        <h2 class="text-2xl font-bold mb-1">${title}</h2>
         <p class="text-gray-500 mb-6">${chart.date || 'Week ' + week} · ${entries.length} tracks</p>
         <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
             <table>
